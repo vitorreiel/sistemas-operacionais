@@ -149,5 +149,5 @@ for i, value in enumerate(avg_times.values):
     plt.text(i, value + 0.05, f"{value:.2f}s", ha='center', va='bottom')
 plt.xlabel('Mecanismo de Exclusão Mútua')
 plt.ylabel('Tempo Médio de Execução (s)')
-plt.title('Comparação de sTempos Médios: Producer-Consumer')
+plt.title('Comparação de Tempos Médios: Producer-Consumer')
 plt.savefig("graficos/comparison_average.png")
