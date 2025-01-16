@@ -28,9 +28,9 @@ class ReadersWritersSemaphores:
         self.mutex.release()
 
         # Simula a leitura
-        print(f"(Semáforos) Leitor {reader_id} está lendo...")
+        print(f"(Semaphores) Leitor {reader_id} está lendo...")
         time.sleep(random.uniform(0.1, 0.5))
-        print(f"(Semáforos) Leitor {reader_id} terminou de ler.")
+        print(f"(Semaphores) Leitor {reader_id} terminou de ler.")
 
         # Controle de saída de leitores
         self.mutex.acquire()
@@ -42,42 +42,50 @@ class ReadersWritersSemaphores:
     def write(self, writer_id):
         # Controle de exclusão mútua para escritores
         self.write_lock.acquire()
-        print(f"(Semáforos) Escritor {writer_id} está escrevendo...")
+        print(f"(Semaphores) Escritor {writer_id} está escrevendo...")
         time.sleep(random.uniform(0.1, 0.5))  # Simula a escrita
-        print(f"(Semáforos) Escritor {writer_id} terminou de escrever.")
+        print(f"(Semaphores) Escritor {writer_id} terminou de escrever.")
         self.write_lock.release()
 
 # Implementação com Monitores
 class ReadersWritersMonitors:
     def __init__(self):
         self.read_count = 0  # Contador de leitores ativos
+        self.writer_active = False  # Indica se há um escritor ativo
         self.condition = threading.Condition()  # Condição para sincronização entre leitores e escritores
 
     def read(self, reader_id):
-        # Controle de entrada de leitores
         with self.condition:
-            self.read_count += 1
-            if self.read_count == 1:  # Se for o primeiro leitor, espera que escritores terminem
+            # Espera enquanto houver um escritor ativo
+            while self.writer_active:
                 self.condition.wait()
+            self.read_count += 1  # Incrementa o contador de leitores ativos
 
         # Simula a leitura
-        print(f"(Monitores) Leitor {reader_id} está lendo...")
+        print(f"(Monitors) Leitor {reader_id} está lendo...")
         time.sleep(random.uniform(0.1, 0.5))
-        print(f"(Monitores) Leitor {reader_id} terminou de ler.")
+        print(f"(Monitors) Leitor {reader_id} terminou de ler.")
 
-        # Controle de saída de leitores
         with self.condition:
-            self.read_count -= 1
-            if self.read_count == 0:  # Se não houver mais leitores, notifica todos
+            self.read_count -= 1  # Decrementa o contador de leitores ativos
+            if self.read_count == 0:  # Se não houver mais leitores, notifica escritores
                 self.condition.notify_all()
 
     def write(self, writer_id):
-        # Controle de exclusão mútua para escritores
         with self.condition:
-            print(f"(Monitores) Escritor {writer_id} está escrevendo...")
-            time.sleep(random.uniform(0.1, 0.5))  # Simula a escrita
-            print(f"(Monitores) Escritor {writer_id} terminou de escrever.")
-            self.condition.notify_all()  # Notifica leitores que a escrita terminou
+            # Espera enquanto houver leitores ou outro escritor ativo
+            while self.read_count > 0 or self.writer_active:
+                self.condition.wait()
+            self.writer_active = True  # Indica que um escritor está ativo
+
+        # Simula a escrita
+        print(f"(Monitors) Escritor {writer_id} está escrevendo...")
+        time.sleep(random.uniform(0.1, 0.5))
+        print(f"(Monitors) Escritor {writer_id} terminou de escrever.")
+
+        with self.condition:
+            self.writer_active = False  # Libera o escritor
+            self.condition.notify_all()  # Notifica leitores ou escritores aguardando
 
 # Implementação com Locks/Mutexes
 class ReadersWritersLocks:
@@ -152,8 +160,8 @@ def run_readers_writers_test(buffer_class, num_readers=5, num_writers=2, num_ope
 num_repeticoes = int(input("Quantas vezes esses testes serão repetidos? "))
 
 # Salva os tempos de execução em um dataset
-csv_path = "dataset/dataset.csv"
-with open(csv_path, mode="w", newline="") as file:
+dataset_path = "dataset/dataset.csv"
+with open(dataset_path, mode="w", newline="") as file:
     writer = csv.writer(file)
     writer.writerow(["Execução", "Semáforos", "Monitores", "Locks/Mutexes"])
 
@@ -171,18 +179,15 @@ with open(csv_path, mode="w", newline="") as file:
 
 # Gera o gráfico com base nos dados
 # Lê os dados do dataset
-data = pd.read_csv(csv_path)
-media_tempos = data["Semáforos", "Monitores", "Locks/Mutexes"].mean()
+data = pd.read_csv(dataset_path)
+avg_times = data.mean().iloc[1:]
+media_tempos = data[["Semáforos", "Monitores", "Locks/Mutexes"]].mean()
 
-grafico_path = "graficos/comparison_average.png"
-plt.figure(figsize=(10, 6))
-plt.bar(media_tempos.index, media_tempos.values, color=['blue', 'green', 'orange'])
-
+plt.bar(media_tempos.index, media_tempos.values, color=['#87CEFA', '#2F4F4F', '#F4A460'])
+plt.ylim(0, max(avg_times.values) * 1.2)
 for i, value in enumerate(media_tempos.values):
     plt.text(i, value + 0.05, f"{value:.2f}s", ha='center', va='bottom')
-
 plt.xlabel("Mecanismo de Exclusão Mútua")
 plt.ylabel("Tempo Médio de Execução (s)")
-plt.title("Comparação de Tempos Médios - Leitores e Escritores")
-plt.grid(axis='y')
-plt.savefig(grafico_path)
+plt.title("Comparação de Tempos Médios: Readers-Writers")
+plt.savefig("graficos/comparison_average.png")
