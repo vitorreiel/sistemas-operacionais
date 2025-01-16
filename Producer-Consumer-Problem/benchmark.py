@@ -143,11 +143,11 @@ with open(dataset_path, mode="w", newline="") as file:
 data = pd.read_csv(dataset_path)
 avg_times = data.mean().iloc[1:]
 
-plt.bar(avg_times.index, avg_times.values, color=['blue', 'green', 'orange'])
+plt.bar(avg_times.index, avg_times.values, color=['#87CEFA', '#2F4F4F', '#F4A460'])
 plt.ylim(0, max(avg_times.values) * 1.2)
 for i, value in enumerate(avg_times.values):
     plt.text(i, value + 0.05, f"{value:.2f}s", ha='center', va='bottom')
 plt.xlabel('Mecanismo de Exclusão Mútua')
 plt.ylabel('Tempo Médio de Execução (s)')
-plt.title('Comparação Média de Tempos de Execução - Produtor-Consumidor')
+plt.title('Comparação de sTempos Médios: Producer-Consumer')
 plt.savefig("graficos/comparison_average.png")
