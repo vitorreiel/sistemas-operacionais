@@ -5,6 +5,7 @@ import os
 import csv
 import matplotlib.pyplot as plt
 import pandas as pd
+import numpy as np
 
 # Criação das pastas para armazenar gráficos e dataset
 if not os.path.exists("graficos"):
@@ -181,13 +182,13 @@ with open(dataset_path, mode="w", newline="") as file:
 # Lê os dados do dataset
 data = pd.read_csv(dataset_path)
 avg_times = data.mean().iloc[1:]
-media_tempos = data[["Semáforos", "Monitores", "Locks/Mutexes"]].mean()
+std_dev = data.std().iloc[1:]
 
-plt.bar(media_tempos.index, media_tempos.values, color=['#87CEFA', '#2F4F4F', '#F4A460'])
-plt.ylim(0, max(avg_times.values) * 1.2)
-for i, value in enumerate(media_tempos.values):
-    plt.text(i, value + 0.05, f"{value:.2f}s", ha='center', va='bottom')
+plt.bar(avg_times.index, avg_times.values, yerr=1.96 * std_dev / np.sqrt(len(data)), capsize=5, color=['#87CEFA', '#2F4F4F', '#F4A460'])
+plt.ylim(0, max(avg_times.values + 1.96 * std_dev / np.sqrt(len(data))) * 1.2)
+for i, (value, error) in enumerate(zip(avg_times.values, 1.96 * std_dev / np.sqrt(len(data)))):
+            plt.text(i, value + error + 0.05, f"{value:.2f}s", ha='center', va='bottom')
 plt.xlabel("Mecanismo de Exclusão Mútua")
 plt.ylabel("Tempo Médio de Execução (s)")
 plt.title("Comparação de Tempos Médios: Readers-Writers")
-plt.savefig("graficos/comparison_average.png")
+plt.savefig("graficos/comparison_average.png") 

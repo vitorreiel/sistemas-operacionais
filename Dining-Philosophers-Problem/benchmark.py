@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import os
 import csv
 import pandas as pd
+import numpy as np
 
 # Verifica e cria os diretórios "graficos" e "dataset" se não existirem
 if not os.path.exists("graficos"):
@@ -133,12 +134,13 @@ with open(dataset_path, mode="w", newline="") as file:
 # Leitura do dataset e geração do gráfico comparativo
 data = pd.read_csv(dataset_path)
 avg_times = data.mean().iloc[1:]
+std_dev = data.std().iloc[1:]
 
 # Criação do gráfico de barras para comparar tempos médios
-plt.bar(avg_times.index, avg_times.values, color=['#87CEFA', '#2F4F4F', '#F4A460'])
-plt.ylim(0, max(avg_times.values) * 1.2)
-for i, value in enumerate(avg_times.values):
-    plt.text(i, value + 0.05, f"{value:.2f}s", ha='center', va='bottom')
+plt.bar(avg_times.index, avg_times.values, yerr=1.96 * std_dev / np.sqrt(len(data)), capsize=5, color=['#87CEFA', '#2F4F4F', '#F4A460'])
+plt.ylim(0, max(avg_times.values + 1.96 * std_dev / np.sqrt(len(data))) * 1.2)
+for i, (value, error) in enumerate(zip(avg_times.values, 1.96 * std_dev / np.sqrt(len(data)))):
+            plt.text(i, value + error + 0.05, f"{value:.2f}s", ha='center', va='bottom')
 plt.xlabel('Mecanismo de Exclusão Mútua')
 plt.ylabel('Tempo Médio de Execução (s)')
 plt.title('Comparação de Tempos Médios: Dining-Philosophers')
